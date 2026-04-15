@@ -1,9 +1,27 @@
-import java.util.ArrayList;
+mport java.util.ArrayList;
 import java.util.List;
+import java.util.Scanner;
 
 /**
- * --- DATA MODEL ---
- * Represents a single reservation entity to be stored in history.
+ * ==============================================================
+ * CLASS - InvalidBookingException
+ * ==============================================================
+ * Use Case 9: Error Handling & Validation
+ *
+ * Description:
+ * This custom exception represents invalid booking scenarios.
+ * Using a domain-specific exception makes error handling clearer.
+ *
+ * @version 9.0
+ */
+class InvalidBookingException extends Exception {
+    public InvalidBookingException(String message) {
+        super(message);
+    }
+}
+
+/**
+ * Entity representing a single booking record.
  */
 class Reservation {
     private String guestName;
@@ -19,69 +37,108 @@ class Reservation {
 }
 
 /**
- * Maintains records of confirmed reservations.
+ * Use Case 8: Maintains records of confirmed reservations.
  * Provides ordered storage for reporting.
  * @version 8.0
  */
 class BookingHistory {
-    // List to store confirmed reservations
     private List<Reservation> confirmedReservations;
 
     public BookingHistory() {
         this.confirmedReservations = new ArrayList<>();
     }
 
-    // Method to add a new reservation to history
     public void addReservation(Reservation reservation) {
         confirmedReservations.add(reservation);
     }
 
-    // Method to retrieve all stored reservations for reporting
     public List<Reservation> getConfirmedReservations() {
         return confirmedReservations;
     }
 }
 
 /**
- * Service for generating reports from history data.
- * Follows separation of storage and reporting logic.
+ * ==============================================================
+ * CLASS - ReservationValidator
+ * ==============================================================
+ * Use Case 9: Error Handling & Validation
+ *
+ * Description:
+ * This class is responsible for validating booking requests.
  */
-class BookingReportService {
-    /**
-     * Use Case 8: Generates a summary report from booking history.
-     * @param history The BookingHistory object containing confirmed reservations.
-     */
-    public void generateReport(BookingHistory history) {
-        System.out.println("Booking History and Reporting\n");
-        System.out.println("Booking History Report");
+class ReservationValidator {
+    public void validate(String guestName, String roomType) throws InvalidBookingException {
+        if (guestName == null || guestName.trim().isEmpty()) {
+            throw new InvalidBookingException("Guest name cannot be empty.");
+        }
 
-        // Iterating through the history to display records
-        for (Reservation res : history.getConfirmedReservations()) {
-            System.out.println("Guest: " + res.getGuestName() +
-                    ", Room Type: " + res.getRoomType());
+        // Strict Validation: Matches the "Invalid room type selected" error from image
+        if (!roomType.equals("Single") && !roomType.equals("Double") && !roomType.equals("Suite")) {
+            throw new InvalidBookingException("Invalid room type selected.");
         }
     }
 }
 
 /**
- * Use Case 8: Booking History and Reporting.
- * Application entry point.
+ * Service for generating reports from history data.
+ */
+class BookingReportService {
+    public void generateReport(BookingHistory history) {
+        System.out.println("\nBooking History and Reporting");
+        System.out.println("-----------------------------");
+        List<Reservation> records = history.getConfirmedReservations();
+
+        if (records.isEmpty()) {
+            System.out.println("No confirmed bookings found.");
+        } else {
+            for (Reservation res : records) {
+                System.out.println("Guest: " + res.getGuestName() + ", Room Type: " + res.getRoomType());
+            }
+        }
+    }
+}
+
+/**
+ * ==============================================================
+ * MAIN CLASS - HotelBookingSystem
+ * ==============================================================
+ * Use Case 9: Application entry point with try-catch-finally.
  */
 public class BookMyStayApp {
-    /**
-     * Main method to demonstrate the Booking History and Reporting flow.
-     */
     public static void main(String[] args) {
-        // 1. Initialize the storage and service components
+        Scanner scanner = new Scanner(System.in);
+
+        // Initialize Components
         BookingHistory history = new BookingHistory();
+        ReservationValidator validator = new ReservationValidator();
         BookingReportService reportService = new BookingReportService();
 
-        // 2. Populate the history with the data shown in the report image
-        history.addReservation(new Reservation("Abhi", "Single"));
-        history.addReservation(new Reservation("Subha", "Double"));
-        history.addReservation(new Reservation("Vanmathi", "Suite"));
+        System.out.println("Booking Validation");
 
-        // 3. Request the report to be generated
+        try {
+            // Interactive User Input
+            System.out.print("Enter guest name: ");
+            String name = scanner.nextLine();
+
+            System.out.print("Enter room type (Single/Double/Suite): ");
+            String type = scanner.nextLine();
+
+            // Validate Input
+            validator.validate(name, type);
+
+            // Process and Store if valid
+            history.addReservation(new Reservation(name, type));
+            System.out.println("Booking processed successfully!");
+
+        } catch (InvalidBookingException e) {
+            // Handle validation failures specifically
+            System.out.println("Booking failed: " + e.getMessage());
+        } finally {
+            // Ensure resource closure
+            scanner.close();
+        }
+
+        // Generate the final history report
         reportService.generateReport(history);
     }
 }
